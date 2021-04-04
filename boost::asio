@@ -15,7 +15,8 @@ bool writespeed(double v);                        //串口写入数据
 
 int main(int argc,char** argv)
 {
-  
+  int v=5;
+  writespeed(v);
   return 0;
 }
 bool writespeed(double v)
@@ -28,4 +29,5 @@ bool writespeed(double v)
   buffer[4]=0X08;
   buffer[14]=ender[0];
   buffer[15]=ender[1];
+  boost::asio::write(sp,boost::asio::buffer(buffer));//写入串口数据
 }
