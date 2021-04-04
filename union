@@ -13,7 +13,7 @@ int main(int argc, char** argv)
   x.a=0X00aa;
   for(int i=0;i<4;i++)
   {
-    std::cout<<x.b[i]<<std::endl;
+    std::cout<<int(x.b[i])<<std::endl;
   }
    return 0;
 }
