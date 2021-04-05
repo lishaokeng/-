@@ -27,7 +27,9 @@ int index(char* chang,char* duan)
 {
   int c=0,d=-1;
   int* next=getnext(duan);
-  while(c<=strlen(chang)&&d<=strlen(duan))
+  int a=strlen(chang);
+  int b=strlen(duan);
+  while(c<=a&&d<=b)
   {
     if(d==-1||chang[c]==duan[d])      //匹配则后移一位,或匹配第一位失败也后移
     {
@@ -39,7 +41,7 @@ int index(char* chang,char* duan)
           d=next[d];
         }
   }
-  if(d==strlen(duan))return c-d;
+  if(d==b)return c-d;
   else return -1;
 }
 
@@ -49,7 +51,8 @@ int* getnext(char* duan)
   int next[strlen(duan)];
   next[0]=-1;
   int c=0,d=-1;
-  while(c<=strlen(duan)-1)
+  int a=strlen(duan);
+  while(c<=a-1)
   {
     if(d==-1||duan(c)==duan(d))
     {
