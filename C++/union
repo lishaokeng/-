@@ -1,0 +1,19 @@
+//C++联合体
+//特点：包含多种数据类型，共用内存空间
+//用途：1.内存紧张的地方如嵌入式
+//     2.需要将数据拆解的地方
+//举例
+#include<iostream>
+union data{
+  int a;
+  char b[4];
+}x;
+int main(int argc, char** argv)
+{
+  x.a=0X00aa123b;//4个字节
+  for(int i=0;i<4;i++)
+  {
+    std::cout<<int(x.b[i])<<std::endl;//b[0]=b[3]顺序为3b,12,aa,00,从低到高
+  }
+   return 0;
+}
