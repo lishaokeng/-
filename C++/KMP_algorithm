@@ -1,0 +1,63 @@
+//BF暴力匹配
+int index(char* chang,char* duan)
+{
+  int c=0,d=0;
+  while(c<=strlen(chang)&&d<=strlen(duan))
+  {
+    if(chang[c]==duan[d])      //匹配则后移一位
+    {
+      c++;
+      d++;
+    }
+    else                      //不匹配则c后移1位，d=0
+        {
+          c=c-d+1;
+          d=0;
+        }
+  }
+  if(d==strlen(duan))return c-d;
+  else return -1;
+}
+
+//KMP算法
+//      0   1   2   3   4   5   6
+//      望  江  楼  上   望  江  流
+//next -1   0   0  0    0  1   2 
+int index(char* chang,char* duan)
+{
+  int c=0,d=-1;
+  int* next=getnext(duan);
+  while(c<=strlen(chang)&&d<=strlen(duan))
+  {
+    if(d==-1||chang[c]==duan[d])      //匹配则后移一位,或匹配第一位失败也后移
+    {
+      c++;
+      d++;
+    }
+    else                      //不匹配则d=next表对应数
+        {
+          d=next[d];
+        }
+  }
+  if(d==strlen(duan))return c-d;
+  else return -1;
+}
+
+//next数组计算，自己和自己匹配
+int* getnext(char* duan)
+{
+  int next[strlen(duan)];
+  next[0]=-1;
+  int c=0,d=-1;
+  while(c<=strlen(duan)-1)
+  {
+    if(d==-1||duan(c)==duan(d))
+    {
+      c++;
+      d++;
+      next[c]=next[d-1]+1;//next[c]=d;
+    }
+  else d=next[d];
+  }
+  return next;
+}
