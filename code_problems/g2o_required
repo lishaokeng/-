@@ -1,0 +1,19 @@
+一、g2o的CMakeLists
+1.add_compile_options(-std=c++11)                                       添加c++11标准
+
+2.set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake_module/")          添加FindG2O_cmake的路径
+
+3.find_package(G2O REQUIRED)
+  include_directories(${G2O_INCLUDE_DIRS})
+  
+  target_link_libraries(main g2o_core g2o_stuff)                        g2o的链接库比较特殊，无法用${G2O_LIBRARIES}引用
+  
+
+二、g2o的include头文件
+
+按笔记图的步骤，线性求解器         ->   块求解器         ->      迭代策略                                ->      总的稀疏优化器         ->     （自定义）点、线
+              （求解HX=b）            （JTJ稀疏策略）           (高斯牛顿\LM)                                   sparse_optimizer
+              solvers/csparse         core/bolck_solver.h      core/optimization_algorithm_levenberg.h        core/sparse_optimizer.h      core/base_vertex.h    或types里已定义点线
+              solvers/dense                                    core/optimization_algorithm_gauss_newton.h                                  core/base_unaryedge.h
+              solvers/pcg                                      core/optimization_algorithm_dogleg.h                                        core/base_binaryedge.h
+              solvers/cholmod                                                                                                              core/base_multiedge.h
