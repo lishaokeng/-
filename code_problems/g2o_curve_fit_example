@@ -1,0 +1,151 @@
+/*
+cmake_minimum_required(VERSION 2.8)
+project(project2)
+add_compile_options(-std=c++11)
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules/)
+
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+
+find_package(G2O REQUIRED)
+include_directories(${G2O_INCLUDE_DIRS})
+
+find_package(Sophus REQUIRED)
+include_directories(${Sophus_INCLUDE_DIRS})
+
+add_executable(main main.cpp)
+target_link_libraries(main ${OpenCV_LIBRARIES} ${Sophus_LIBRARIES} g2o_core g2o_stuff)
+*/
+
+#include <iostream>
+#include<Eigen/Core>
+#include<Eigen/Dense>
+#include<Eigen/Geometry>
+#include<opencv4/opencv2/opencv.hpp>
+#include<opencv4/opencv2/xfeatures2d.hpp>
+#include<sophus/so3.hpp>
+#include<sophus/se3.hpp>
+#include<g2o/solvers/dense/linear_solver_dense.h>                  //线性优化器
+#include<g2o/core/block_solver.h>                                  //块求解器
+#include<g2o/core/optimization_algorithm_levenberg.h>              //最小二乘算法
+#include<g2o/core/sparse_optimizer.h>                              //总求解器
+#include<g2o/core/base_unary_edge.h>                               //自定义顶点边
+#include<g2o/core/base_vertex.h>
+#include<g2o/types/slam2d/vertex_point_xy.h>                       //例子
+#include<g2o/types/slam2d/edge_pointxy.h>
+
+using namespace std;
+using namespace cv;
+using namespace cv::xfeatures2d;
+using namespace Eigen;
+using namespace Sophus;
+using namespace g2o;
+
+RNG rng;
+class myvertex:public BaseVertex<3,Vector3d>                    //参考例子
+{
+public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    virtual void setToOriginImpl() 
+    {
+        _estimate.setZero();
+    }
+    virtual void oplusImpl(const number_t* update)
+    {
+        _estimate+=Vector3d(update);
+    }
+    virtual bool read(std::istream& is){}                        //纯虚函数必须重写，末尾是{}表示重写内容空，末尾;表示没重写
+    virtual bool write(std::ostream& os) const{}
+};
+class myedge:public BaseUnaryEdge<1,Vector2d,myvertex>          //参考例子，1是残差维度，vector2d是观测数据的维度，通过实例化edge->setMeasurement()添加，myvertex关联顶点
+{
+public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    void computeError()                                         //残差需要重写，雅可比不必重写，可自动推导
+      {
+        const myvertex* v1 = static_cast<const myvertex*>(_vertices[0]);
+        Vector3d v=v1->estimate();
+        double x=_measurement[0];
+        double y=_measurement[1];
+        _error(0,0)=y-std::exp(v[0]*x*x+v[1]*x+v[2]);
+    }
+    virtual bool read(std::istream& is){}                       //末尾{}纯虚函数要重写
+    virtual bool write(std::ostream& os) const{}
+};
+
+
+void getdata(Vector3d v,vector<double> &data_x,vector<double> &data_y,Mat image);
+
+int main(int argc, char **argv) {   
+    double a=2.0,b=1.0,c=3.0;
+    double ac=1.5,bc=1.5,cc=1.5;
+    cv::Mat image(600,800,CV_8UC3,cv::Scalar::all(0));
+    vector<double>data_x;
+    vector<double>data_y;
+    getdata(Vector3d(a,b,c),data_x,data_y,image);
+    
+    typedef g2o::BlockSolver< g2o::BlockSolverTraits<3, 1> >  MyBlockSolver;                         //参考~/thrid/g2o-master/g2o/example/中例子
+    typedef g2o::LinearSolverDense<MyBlockSolver::PoseMatrixType> MyLinearSolver;
+
+    g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(
+    g2o::make_unique<MyBlockSolver>(g2o::make_unique<MyLinearSolver>()));
+
+    g2o::SparseOptimizer optimizer;
+    optimizer.setVerbose(true);
+    optimizer.setAlgorithm(solver);
+
+    // build the optimization problem given the points
+    // 1. add the parameter vertex
+    myvertex* vertex=new myvertex();
+    vertex->setId(0);
+    vertex->setEstimate(Eigen::Vector3d(ac,bc,cc)); // some initial value for the params
+    optimizer.addVertex(vertex);
+    // 2. add the points we measured to be on the curve
+    int n=data_x.size();
+    for (int i = 0; i <n ; ++i) 
+    {
+        myedge* e = new myedge;
+        e->setInformation(Eigen::Matrix<double, 1, 1>::Identity());
+        e->setId(i);
+        e->setVertex(0, vertex);
+        e->setMeasurement(Vector2d(data_x[i],data_y[i]));
+        optimizer.addEdge(e);
+    }
+
+    // perform the optimization
+    double t1=getTickCount();
+    optimizer.initializeOptimization();
+    optimizer.optimize(10);
+    double t2=getTickCount();
+    double t=(t2-t1)/getTickFrequency();
+    cout<<"t:"<<t<<endl;
+    Vector3d result=vertex->estimate();
+    cout<<result<<endl;
+    for(int i=0;i<n;i++)
+    {
+        double x_c=1.0*i/n;
+        double y_c=std::exp(result[0]*x_c*x_c+result[1]*x_c+result[2]);
+        image.at<Vec3b>(image.rows-(int)y_c-50,i)=Vec3b(255,255,0);
+    }
+    imshow("image",image);
+    waitKey(0);
+    return 0;
+}
+void getdata(Eigen::Vector3d v, vector<double>& data_x, vector<double>& data_y,Mat image)
+{
+    double a=v[0];
+    double b=v[1];
+    double c=v[2];
+    int number=image.cols;
+    for(int i=0;i<number;i++)
+    {
+        double x=1.0*i/number;
+        double y_=std::exp(a*x*x+b*x+c);
+        double y=y_+rng.gaussian(10);
+        data_x.push_back(x);
+        data_y.push_back(y);
+        image.at<Vec3b>(image.rows-(int)y-50,i)=Vec3b(255,255,255);
+        image.at<Vec3b>(image.rows-(int)y_-50,i)=Vec3b(0,0,255);
+    }
+    return;
+}
