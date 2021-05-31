@@ -1,0 +1,5 @@
+平台      静态库      动态库
+windows   .lib       .dll   .lib    .h
+linux     .a         .so
+
+.h编译需要，.lib链接需要，.dll执行需要，.lib记录函数入口地址，.dll是函数内容，.h是包含头文件和函数声明。
