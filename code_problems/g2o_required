@@ -17,3 +17,14 @@
               solvers/dense                                    core/optimization_algorithm_gauss_newton.h                                  core/base_unaryedge.h
               solvers/pcg                                      core/optimization_algorithm_dogleg.h                                        core/base_binaryedge.h
               solvers/cholmod                                                                                                              core/base_multiedge.h
+
+三、g2o自带的成员变量和成员函数
+
+1. vertex myvertex:public BaseVertex<9,myclass>        9为顶点维度，myclass为顶点类型，可以自定义，当自定义时成员变量_estimate类型也是myclass
+{
+public:
+    virtual void setToOriginImpl()override
+    {
+      _estimate=myclass();
+    }
+};
