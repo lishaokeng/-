@@ -19,7 +19,7 @@
               solvers/cholmod                                                                                                              core/base_multiedge.h
 
 三、g2o自带的成员变量和成员函数
-1.
+1. vertex的_estimate可以自定义，edge的_error和_measurement只能是Eigen::Matrix类型
 class myclass {
 public:
 void add(const double* b){
@@ -33,7 +33,7 @@ Matrix3d roration;
 Vector3d pretranslation;
 double f,k1,k2;
 };
- vertex myvertex:public BaseVertex<9,myclass>        9为顶点维度，myclass为顶点类型，可以自定义，当自定义时成员变量_estimate类型也是myclass
+class myvertex:public BaseVertex<9,myclass>        9为顶点维度，myclass为顶点类型，可以自定义，当自定义时成员变量_estimate类型也是myclass
 {
 public:
     virtual void setToOriginImpl()override
@@ -49,4 +49,16 @@ public:
       _estimate.k1+=v->k1;
       _estimate.k2+=v->k2;
     }
+    virtual bool read(istream& is){}            纯虚函数必须重写，这里重写内容为空
+    virtual bool write(ostream& os){}
 };
+2.class myedge::public BaseUnaryEdge<3,Vector6d,myvertex>      3为_error维度Vector3d, Vector6d为_measurement类型，computeError中使用,注意当1时_error(0,0)来表示残差，因为Matrix<double,1,1>
+{
+public:
+  virtual void computeError()
+  {
+    auto *v=(myvertex*)_vertices[0];
+    Vector3d p=Vector3d(v->estimate[3],v->estimate[4],v->estimate[5]);
+    _error=Vector3d(_measurement[0],_measurement[1],_measurement[2])-(v->rotation*p+v->pretranslation);
+  }
+}；
